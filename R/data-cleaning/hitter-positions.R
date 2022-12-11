@@ -23,8 +23,8 @@ data = {
   data %>% 
     select(-Team) %>% 
     left_join(old, by = "playerid") %>% 
-    select(playerid, Name, POS, Team, G:`wRC+`,
-           Off, Def, WAR) %>% 
+    mutate(IP = 0) %>% 
+    select(playerid, Name, Team, POS, G, PA, IP, WAR) %>% 
     arrange(desc(WAR))
 }
 
