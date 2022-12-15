@@ -3,6 +3,20 @@ library(DT)
 library(data.table)
 library(ggrepel)
 library(shinyWidgets)
+library(tidyverse)
+
+setwd('C:/Users/adity/Documents/free-agent-2023')
+players <- read_csv("data/players-all.csv")
+final_cap <- read_csv("data/sim_cap_spaces.csv")
+needs <- read_csv("data/pos-multipliers.csv")
+players <- players %>% filter(is.na(Team)) %>% arrange(desc(value)) %>% head(100)
+
+final_cap$Team = sub("CHW", "CWS", final_cap$Team)
+final_cap$Team = sub("KC", "KCR", final_cap$Team)
+final_cap$Team = sub("SD", "SDP", final_cap$Team)
+final_cap$Team = sub("SF", "SFG", final_cap$Team)
+final_cap$Team = sub("TB", "TBR", final_cap$Team)
+final_cap$Team = sub("WSH", "WSN", final_cap$Team)
 
 
 
@@ -59,31 +73,60 @@ server <- function(input, output) {
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress
+            bid <- players[p,]$value * final_cap[t,]$aggress * needs[t,players[p,]$POS][1][[1]]
             if(final_cap[t,]$space_default >= bid) {
               bids[t] <- bid
+            } else {
+              bids[t] <- 0
             }
           }
           ind <- sample(which(bids == max(bids)), 1)
           winner <- final_cap[ind,]$Team
           #subtract cap of winner 
+          players[p,]$Team <- winner
         }
         
-        return(data.table(ret))
+        return(data.table(players))
         
       } else if(input$mkt == "Favor Big Markets") { #real and big mkt
         
-        winner <- final_cap %>% filter(space.real.favs == max(final_cap$space.real.favs))
-        update_proj$Team <- winner$Team
-        ret <- inner_join(update_proj, final_cap, by = "Team")
-        ret <- ret %>% select(playerid, Name, Team, POS, space.real.favs) %>% filter(!duplicated(Team))
+        for(p in 1:nrow(players)) {
+          bids <- c()
+          for(t in 1:nrow(final_cap)) {
+            bid <- players[p,]$value * final_cap[t,]$aggress * needs[t,players[p,]$POS][1][[1]]
+            if(final_cap[t,]$space.real.favs>= bid) {
+              bids[t] <- bid
+            } else {
+              bids[t] <- 0
+            }
+          }
+          ind <- sample(which(bids == max(bids)), 1)
+          winner <- final_cap[ind,]$Team
+          #subtract cap of winner 
+          players[p,]$Team <- winner
+        }
+        
+        return(data.table(players))
         
       } else if(input$mkt == "Equal Markets") { #real and equal mkt
         
-        winner <- final_cap %>% filter(space.real.eq == max(final_cap$space.real.eq))
-        update_proj$Team <- winner$Team
-        ret <- inner_join(update_proj, final_cap, by = "Team")
-        ret <- ret %>% select(playerid, Name, Team, POS, space.real.eq) %>% filter(!duplicated(Team))
+        for(p in 1:nrow(players)) {
+          bids <- c()
+          for(t in 1:nrow(final_cap)) {
+            bid <- players[p,]$value * final_cap[t,]$aggress * needs[t,players[p,]$POS][1][[1]]
+            if(final_cap[t,]$space.real.eq >= bid) {
+              bids[t] <- bid
+            } else {
+              bids[t] <- 0
+            }
+          }
+          ind <- sample(which(bids == max(bids)), 1)
+          winner <- final_cap[ind,]$Team
+          #subtract cap of winner 
+          players[p,]$Team <- winner
+        }
+        
+        return(data.table(players))
         
       }
       
@@ -91,28 +134,64 @@ server <- function(input, output) {
     } else if(input$ts == "Favor World Series Favorites") { #contender heavy team strategy
       
       if(input$mkt == "Regular Markets") { #contending and real mkt
-        winner <- final_cap %>% filter(space.favs.real == max(final_cap$space.favs.real))
-        update_proj$Team <- winner$Team
-        ret <- inner_join(update_proj, final_cap, by = "Team")
-        ret <- ret %>% select(playerid, Name, Team, POS, space.favs.real) %>% filter(!duplicated(Team))
         
-        return(data.table(ret))
+        for(p in 1:nrow(players)) {
+          bids <- c()
+          for(t in 1:nrow(final_cap)) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_fav * needs[t,players[p,]$POS][1][[1]]
+            if(final_cap[t,]$space.favs.real >= bid) {
+              bids[t] <- bid
+            } else {
+              bids[t] <- 0
+            }
+          }
+          ind <- sample(which(bids == max(bids)), 1)
+          winner <- final_cap[ind,]$Team
+          #subtract cap of winner 
+          players[p,]$Team <- winner
+        }
+        
+        return(data.table(players))
         
       } else if(input$mkt == "Favor Big Markets") { #both contending strat and big mkt
         
-        winner <- final_cap %>% filter(space_favs == max(final_cap$space_favs))
-        update_proj$Team <- winner$Team
-        ret <- inner_join(update_proj, final_cap, by = "Team")
-        ret <- ret %>% select(playerid, Name, Team, POS, space_favs) %>% filter(!duplicated(Team))
+        for(p in 1:nrow(players)) {
+          bids <- c()
+          for(t in 1:nrow(final_cap)) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_fav * needs[t,players[p,]$POS][1][[1]]
+            if(final_cap[t,]$space_favs >= bid) {
+              bids[t] <- bid
+            } else {
+              bids[t] <- 0
+            }
+          }
+          ind <- sample(which(bids == max(bids)), 1)
+          winner <- final_cap[ind,]$Team
+          #subtract cap of winner 
+          players[p,]$Team <- winner
+        }
         
-        return(data.table(ret))
+        return(data.table(players))
         
       } else if(input$mkt == "Equal Markets") { #contending and equal mkt
         
-        winner <- final_cap %>% filter(space.favs.eq == max(final_cap$space.favs.eq))
-        final_cap$space.favs.eq <- final_cap$space.favs.eq * final_cap$aggress_fav
-        ret <- inner_join(update_proj, final_cap, by = "Team")
-        ret <- ret %>% select(playerid, Name, Team, POS, space.favs.eq) %>% filter(!duplicated(Team))
+        for(p in 1:nrow(players)) {
+          bids <- c()
+          for(t in 1:nrow(final_cap)) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_fav * needs[t,players[p,]$POS][1][[1]]
+            if(final_cap[t,]$space.favs.eq >= bid) {
+              bids[t] <- bid
+            } else {
+              bids[t] <- 0
+            }
+          }
+          ind <- sample(which(bids == max(bids)), 1)
+          winner <- final_cap[ind,]$Team
+          #subtract cap of winner 
+          players[p,]$Team <- winner
+        }
+        
+        return(data.table(players))
         
       }
       
@@ -121,24 +200,63 @@ server <- function(input, output) {
       
       if(input$mkt == "Regular Markets") { #equal and real mkt
         
-        winner <- final_cap %>% filter(space.eq.real == max(final_cap$space.eq.real ))
-        update_proj$Team <- winner$Team
-        ret <- inner_join(update_proj, final_cap, by = "Team")
-        ret <- ret %>% select(playerid, Name, Team, POS, space.eq.real) %>% filter(!duplicated(Team))
+        for(p in 1:nrow(players)) {
+          bids <- c()
+          for(t in 1:nrow(final_cap)) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_equal * needs[t,players[p,]$POS][1][[1]]
+            if(final_cap[t,]$space.eq.real >= bid) {
+              bids[t] <- bid
+            } else {
+              bids[t] <- 0
+            }
+          }
+          ind <- sample(which(bids == max(bids)), 1)
+          winner <- final_cap[ind,]$Team
+          #subtract cap of winner 
+          players[p,]$Team <- winner
+        }
+        
+        return(data.table(players))
         
       } else if(input$mkt == "Favor Big Markets") { #equal and big mkt
         
-        winner <- final_cap %>% filter(space.eq.favs == max(final_cap$space.eq.favs))
-        update_proj$Team <- winner$Team
-        ret <- inner_join(update_proj, final_cap, by = "Team")
-        ret <- ret %>% select(playerid, Name, Team, POS, space.eq.favs) %>% filter(!duplicated(Team))
+        for(p in 1:nrow(players)) {
+          bids <- c()
+          for(t in 1:nrow(final_cap)) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_equal * needs[t,players[p,]$POS][1][[1]]
+            if(final_cap[t,]$space.eq.favs >= bid) {
+              bids[t] <- bid
+            } else {
+              bids[t] <- 0
+            }
+          }
+          ind <- sample(which(bids == max(bids)), 1)
+          winner <- final_cap[ind,]$Team
+          #subtract cap of winner 
+          players[p,]$Team <- winner
+        }
+        
+        return(data.table(players))
         
       } else if(input$mkt == "Equal Markets") { #both equal strat and mkt
         
-        winner <- final_cap %>% filter(space_equal == max(final_cap$space_equal))
-        update_proj$Team <- winner$Team
-        ret <- inner_join(update_proj, final_cap, by = "Team")
-        ret <- ret %>% select(playerid, Name, Team, POS, space_equal) %>% filter(!duplicated(Team))
+        for(p in 1:nrow(players)) {
+          bids <- c()
+          for(t in 1:nrow(final_cap)) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_equal * needs[t,players[p,]$POS][1][[1]]
+            if(final_cap[t,]$space_equal >= bid) {
+              bids[t] <- bid
+            } else {
+              bids[t] <- 0
+            }
+          }
+          ind <- sample(which(bids == max(bids)), 1)
+          winner <- final_cap[ind,]$Team
+          #subtract cap of winner 
+          players[p,]$Team <- winner
+        }
+        
+        return(data.table(players))
         
       }
       
