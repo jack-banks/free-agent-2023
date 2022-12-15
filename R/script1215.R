@@ -59,3 +59,12 @@ all = all %>% left_join(fa)
 
 write_csv(all, "data/players-all.csv")
 write_csv(pos, "data/positions.csv")
+
+scaled_pos = pos
+
+for(i in 2:17) {
+  scaled_pos[,i] = 1 - 0.1 * scale(scaled_pos[,i])[,1]
+}
+
+write_csv(scaled_pos, "data/pos-multipliers.csv")
+
