@@ -5,10 +5,11 @@ library(ggrepel)
 library(shinyWidgets)
 library(tidyverse)
 
-setwd('C:/Users/adity/Documents/free-agent-2023')
+load("Environment.Rdata")
 players <- read_csv("data/players-all.csv")
 final_cap <- read_csv("data/sim_cap_spaces.csv")
 needs <- read_csv("data/pos-multipliers.csv")
+
 players <- players %>% filter(is.na(Team)) %>% arrange(desc(value)) %>% head(100)
 
 final_cap$Team = sub("CHW", "CWS", final_cap$Team)
@@ -18,7 +19,8 @@ final_cap$Team = sub("SF", "SFG", final_cap$Team)
 final_cap$Team = sub("TB", "TBR", final_cap$Team)
 final_cap$Team = sub("WSH", "WSN", final_cap$Team)
 
-
+results <- final_cap %>% select(Team)
+results <- cbind(results, data.frame("PlayersAdded" = 1, "Spent" = 0))
 
 ui <- fluidPage(
   
@@ -69,7 +71,8 @@ server <- function(input, output) {
     if(input$ts == "Spending Based On Team Contention Status") { #real contention status
       
       if(input$mkt == "Regular Markets") { #default
-        
+        cap_space <- final_cap$space_default
+        names(cap_space) <- final_cap$Team
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
@@ -82,11 +85,12 @@ server <- function(input, output) {
           }
           ind <- sample(which(bids == max(bids)), 1)
           winner <- final_cap[ind,]$Team
-          #subtract cap of winner 
+          signing(players[p,]$playerid, winner, max(bids))
           players[p,]$Team <- winner
         }
         
-        return(data.table(players))
+        ret <- players %>% select(Name, Team, POS, value)
+        return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #real and big mkt
         
@@ -106,7 +110,8 @@ server <- function(input, output) {
           players[p,]$Team <- winner
         }
         
-        return(data.table(players))
+        ret <- players %>% select(Name, Team, POS, value)
+        return(data.table(ret))
         
       } else if(input$mkt == "Equal Markets") { #real and equal mkt
         
@@ -126,7 +131,8 @@ server <- function(input, output) {
           players[p,]$Team <- winner
         }
         
-        return(data.table(players))
+        ret <- players %>% select(Name, Team, POS, value)
+        return(data.table(ret))
         
       }
       
@@ -151,7 +157,8 @@ server <- function(input, output) {
           players[p,]$Team <- winner
         }
         
-        return(data.table(players))
+        ret <- players %>% select(Name, Team, POS, value)
+        return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #both contending strat and big mkt
         
@@ -171,7 +178,8 @@ server <- function(input, output) {
           players[p,]$Team <- winner
         }
         
-        return(data.table(players))
+        ret <- players %>% select(Name, Team, POS, value)
+        return(data.table(ret))
         
       } else if(input$mkt == "Equal Markets") { #contending and equal mkt
         
@@ -191,7 +199,8 @@ server <- function(input, output) {
           players[p,]$Team <- winner
         }
         
-        return(data.table(players))
+        ret <- players %>% select(Name, Team, POS, value)
+        return(data.table(ret))
         
       }
       
@@ -216,7 +225,8 @@ server <- function(input, output) {
           players[p,]$Team <- winner
         }
         
-        return(data.table(players))
+        ret <- players %>% select(Name, Team, POS, value)
+        return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #equal and big mkt
         
@@ -236,7 +246,8 @@ server <- function(input, output) {
           players[p,]$Team <- winner
         }
         
-        return(data.table(players))
+        ret <- players %>% select(Name, Team, POS, value)
+        return(data.table(ret))
         
       } else if(input$mkt == "Equal Markets") { #both equal strat and mkt
         
@@ -256,7 +267,8 @@ server <- function(input, output) {
           players[p,]$Team <- winner
         }
         
-        return(data.table(players))
+        ret <- players %>% select(Name, Team, POS, value)
+        return(data.table(ret))
         
       }
       
@@ -267,8 +279,6 @@ server <- function(input, output) {
   
   output$table_out2 <- renderDT({
     
-    results <- final_cap %>% select(Team)
-    results <- cbind(results, data.frame("PlayersAdded" = 1, "PlayersLost" = 1, "Spent" = 0))
     
     return(data.table(results))
   })
