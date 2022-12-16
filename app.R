@@ -6,18 +6,13 @@ library(shinyWidgets)
 library(tidyverse)
 
 load("Environment.Rdata")
-players <- read_csv("data/players-all.csv")
-final_cap <- read_csv("data/sim_cap_spaces.csv")
-needs <- read_csv("data/pos-multipliers.csv")
 
-players <- players %>% filter(is.na(Team)) %>% arrange(desc(value)) %>% head(100)
+final_cap <- read_csv("sim_cap_spaces.csv")
 
-final_cap$Team = sub("CHW", "CWS", final_cap$Team)
-final_cap$Team = sub("KC", "KCR", final_cap$Team)
-final_cap$Team = sub("SD", "SDP", final_cap$Team)
-final_cap$Team = sub("SF", "SFG", final_cap$Team)
-final_cap$Team = sub("TB", "TBR", final_cap$Team)
-final_cap$Team = sub("WSH", "WSN", final_cap$Team)
+players_all <- read_csv("players-all.csv")
+players <- players_all %>% filter(is.na(Team)) %>% arrange(desc(value)) %>% head(100)
+
+
 
 results <- final_cap %>% select(Team)
 results <- cbind(results, data.frame("PlayersAdded" = 1, "Spent" = 0))
@@ -73,65 +68,83 @@ server <- function(input, output) {
       if(input$mkt == "Regular Markets") { #default
         cap_space <- final_cap$space_default
         names(cap_space) <- final_cap$Team
+        contracts <- c()
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress * needs[t,players[p,]$POS][1][[1]]
-            if(final_cap[t,]$space_default >= bid) {
+            bid <- players[p,]$value * final_cap[t,]$aggress * pos_multipliers[t,players[p,]$POS][1][[1]]
+            if(cap_space[[t]] >= bid) {
               bids[t] <- bid
             } else {
               bids[t] <- 0
             }
           }
-          ind <- sample(which(bids == max(bids)), 1)
-          winner <- final_cap[ind,]$Team
-          signing(players[p,]$playerid, winner, max(bids))
+          maxbids <- which(bids == max(bids))
+          ind <- sample(1:length(maxbids), 1)
+          winner <- final_cap[maxbids[ind],]$Team
+          signing(players[p,]$playerid, winner, max(bids), players_all)
           players[p,]$Team <- winner
+          cap_space[winner] = cap_space[winner] - max(bids)
+          contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS, value)
+        ret <- players %>% select(Name, Team, POS)
+        ret <- cbind(ret, ContractValue = round(contracts))
         return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #real and big mkt
         
+        cap_space <- final_cap$space.real.favs
+        names(cap_space) <- final_cap$Team
+        contracts <- c()
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress * needs[t,players[p,]$POS][1][[1]]
-            if(final_cap[t,]$space.real.favs>= bid) {
+            bid <- players[p,]$value * final_cap[t,]$aggress * pos_multipliers[t,players[p,]$POS][1][[1]]
+            if(cap_space[[t]] >= bid) {
               bids[t] <- bid
             } else {
               bids[t] <- 0
             }
           }
-          ind <- sample(which(bids == max(bids)), 1)
-          winner <- final_cap[ind,]$Team
-          #subtract cap of winner 
+          maxbids <- which(bids == max(bids))
+          ind <- sample(1:length(maxbids), 1)
+          winner <- final_cap[maxbids[ind],]$Team
+          signing(players[p,]$playerid, winner, max(bids), players_all)
           players[p,]$Team <- winner
+          cap_space[winner] = cap_space[winner] - max(bids)
+          contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS, value)
+        ret <- players %>% select(Name, Team, POS)
+        ret <- cbind(ret, ContractValue = round(contracts))
         return(data.table(ret))
-        
       } else if(input$mkt == "Equal Markets") { #real and equal mkt
         
+        cap_space <- final_cap$space.real.eq
+        names(cap_space) <- final_cap$Team
+        contracts <- c()
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress * needs[t,players[p,]$POS][1][[1]]
-            if(final_cap[t,]$space.real.eq >= bid) {
+            bid <- players[p,]$value * final_cap[t,]$aggress * pos_multipliers[t,players[p,]$POS][1][[1]]
+            if(cap_space[[t]] >= bid) {
               bids[t] <- bid
             } else {
               bids[t] <- 0
             }
           }
-          ind <- sample(which(bids == max(bids)), 1)
-          winner <- final_cap[ind,]$Team
-          #subtract cap of winner 
+          maxbids <- which(bids == max(bids))
+          ind <- sample(1:length(maxbids), 1)
+          winner <- final_cap[maxbids[ind],]$Team
+          signing(players[p,]$playerid, winner, max(bids), players_all)
           players[p,]$Team <- winner
+          cap_space[winner] = cap_space[winner] - max(bids)
+          contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS, value)
+        ret <- players %>% select(Name, Team, POS)
+        ret <- cbind(ret, ContractValue = round(contracts))
         return(data.table(ret))
         
       }
@@ -141,65 +154,86 @@ server <- function(input, output) {
       
       if(input$mkt == "Regular Markets") { #contending and real mkt
         
+        cap_space <- final_cap$space.favs.real
+        names(cap_space) <- final_cap$Team
+        contracts <- c()
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress_fav * needs[t,players[p,]$POS][1][[1]]
-            if(final_cap[t,]$space.favs.real >= bid) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_fav * pos_multipliers[t,players[p,]$POS][1][[1]]
+            if(cap_space[[t]] >= bid) {
               bids[t] <- bid
             } else {
               bids[t] <- 0
             }
           }
-          ind <- sample(which(bids == max(bids)), 1)
-          winner <- final_cap[ind,]$Team
-          #subtract cap of winner 
+          maxbids <- which(bids == max(bids))
+          ind <- sample(1:length(maxbids), 1)
+          winner <- final_cap[maxbids[ind],]$Team
+          signing(players[p,]$playerid, winner, max(bids), players_all)
           players[p,]$Team <- winner
+          cap_space[winner] = cap_space[winner] - max(bids)
+          contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS, value)
+        ret <- players %>% select(Name, Team, POS)
+        ret <- cbind(ret, ContractValue = round(contracts))
         return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #both contending strat and big mkt
         
+        cap_space <- final_cap$space_favs
+        names(cap_space) <- final_cap$Team
+        contracts <- c()
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress_fav * needs[t,players[p,]$POS][1][[1]]
-            if(final_cap[t,]$space_favs >= bid) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_fav * pos_multipliers[t,players[p,]$POS][1][[1]]
+            if(cap_space[[t]] >= bid) {
               bids[t] <- bid
             } else {
               bids[t] <- 0
             }
           }
-          ind <- sample(which(bids == max(bids)), 1)
-          winner <- final_cap[ind,]$Team
-          #subtract cap of winner 
+          maxbids <- which(bids == max(bids))
+          ind <- sample(1:length(maxbids), 1)
+          winner <- final_cap[maxbids[ind],]$Team
+          signing(players[p,]$playerid, winner, max(bids), players_all)
           players[p,]$Team <- winner
+          cap_space[winner] = cap_space[winner] - max(bids)
+          contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS, value)
+        ret <- players %>% select(Name, Team, POS)
+        ret <- cbind(ret, ContractValue = round(contracts))
         return(data.table(ret))
         
       } else if(input$mkt == "Equal Markets") { #contending and equal mkt
         
+        cap_space <- final_cap$space.favs.eq
+        names(cap_space) <- final_cap$Team
+        contracts <- c()
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress_fav * needs[t,players[p,]$POS][1][[1]]
-            if(final_cap[t,]$space.favs.eq >= bid) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_fav * pos_multipliers[t,players[p,]$POS][1][[1]]
+            if(cap_space[[t]] >= bid) {
               bids[t] <- bid
             } else {
               bids[t] <- 0
             }
           }
-          ind <- sample(which(bids == max(bids)), 1)
-          winner <- final_cap[ind,]$Team
-          #subtract cap of winner 
+          maxbids <- which(bids == max(bids))
+          ind <- sample(1:length(maxbids), 1)
+          winner <- final_cap[maxbids[ind],]$Team
+          signing(players[p,]$playerid, winner, max(bids), players_all)
           players[p,]$Team <- winner
+          cap_space[winner] = cap_space[winner] - max(bids)
+          contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS, value)
+        ret <- players %>% select(Name, Team, POS)
+        ret <- cbind(ret, ContractValue = round(contracts))
         return(data.table(ret))
         
       }
@@ -209,65 +243,86 @@ server <- function(input, output) {
       
       if(input$mkt == "Regular Markets") { #equal and real mkt
         
+        cap_space <- final_cap$space.eq.real
+        names(cap_space) <- final_cap$Team
+        contracts <- c()
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress_equal * needs[t,players[p,]$POS][1][[1]]
-            if(final_cap[t,]$space.eq.real >= bid) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_equal * pos_multipliers[t,players[p,]$POS][1][[1]]
+            if(cap_space[[t]] >= bid) {
               bids[t] <- bid
             } else {
               bids[t] <- 0
             }
           }
-          ind <- sample(which(bids == max(bids)), 1)
-          winner <- final_cap[ind,]$Team
-          #subtract cap of winner 
+          maxbids <- which(bids == max(bids))
+          ind <- sample(1:length(maxbids), 1)
+          winner <- final_cap[maxbids[ind],]$Team
+          signing(players[p,]$playerid, winner, max(bids), players_all)
           players[p,]$Team <- winner
+          cap_space[winner] = cap_space[winner] - max(bids)
+          contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS, value)
+        ret <- players %>% select(Name, Team, POS)
+        ret <- cbind(ret, ContractValue = round(contracts))
         return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #equal and big mkt
         
+        cap_space <- final_cap$space.eq.favs
+        names(cap_space) <- final_cap$Team
+        contracts <- c()
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress_equal * needs[t,players[p,]$POS][1][[1]]
-            if(final_cap[t,]$space.eq.favs >= bid) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_equal * pos_multipliers[t,players[p,]$POS][1][[1]]
+            if(cap_space[[t]] >= bid) {
               bids[t] <- bid
             } else {
               bids[t] <- 0
             }
           }
-          ind <- sample(which(bids == max(bids)), 1)
-          winner <- final_cap[ind,]$Team
-          #subtract cap of winner 
+          maxbids <- which(bids == max(bids))
+          ind <- sample(1:length(maxbids), 1)
+          winner <- final_cap[maxbids[ind],]$Team
+          signing(players[p,]$playerid, winner, max(bids), players_all)
           players[p,]$Team <- winner
+          cap_space[winner] = cap_space[winner] - max(bids)
+          contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS, value)
+        ret <- players %>% select(Name, Team, POS)
+        ret <- cbind(ret, ContractValue = round(contracts))
         return(data.table(ret))
         
       } else if(input$mkt == "Equal Markets") { #both equal strat and mkt
         
+        cap_space <- final_cap$space_equal
+        names(cap_space) <- final_cap$Team
+        contracts <- c()
         for(p in 1:nrow(players)) {
           bids <- c()
           for(t in 1:nrow(final_cap)) {
-            bid <- players[p,]$value * final_cap[t,]$aggress_equal * needs[t,players[p,]$POS][1][[1]]
-            if(final_cap[t,]$space_equal >= bid) {
+            bid <- players[p,]$value * final_cap[t,]$aggress_equal * pos_multipliers[t,players[p,]$POS][1][[1]]
+            if(cap_space[[t]] >= bid) {
               bids[t] <- bid
             } else {
               bids[t] <- 0
             }
           }
-          ind <- sample(which(bids == max(bids)), 1)
-          winner <- final_cap[ind,]$Team
-          #subtract cap of winner 
+          maxbids <- which(bids == max(bids))
+          ind <- sample(1:length(maxbids), 1)
+          winner <- final_cap[maxbids[ind],]$Team
+          signing(players[p,]$playerid, winner, max(bids), players_all)
           players[p,]$Team <- winner
+          cap_space[winner] = cap_space[winner] - max(bids)
+          contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS, value)
+        ret <- players %>% select(Name, Team, POS)
+        ret <- cbind(ret, ContractValue = round(contracts))
         return(data.table(ret))
         
       }
@@ -285,6 +340,5 @@ server <- function(input, output) {
   
   
 }
-
 
 shinyApp(ui, server)
