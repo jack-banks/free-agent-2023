@@ -75,8 +75,7 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   
-  #table
-  output$table_out <- renderDT({
+  returns <- reactive({
     if(input$ts == "Spending Based On Team Contention Status") { #real contention status
       
       if(input$mkt == "Regular Markets") { #default
@@ -104,6 +103,7 @@ server <- function(input, output) {
         
         ret <- players %>% select(Name, Team, POS)
         ret <- cbind(ret, ContractValue = round(contracts))
+        
         return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #real and big mkt
@@ -345,12 +345,21 @@ server <- function(input, output) {
       return(data.table(0))
     }
   })
+  #table
+  output$table_out <- renderDT({
+    datatable(returns()) 
+  })
   
+ results <- reactive({
+   res <- returns() %>% group_by(Team) %>% summarize(PlayersAdded = sum(n()), Spent = sum(ContractValue))
+   return(res)
+   
+ })
   output$table_out2 <- renderDT({
     
-   return(data.table(results))
-  
+    return(datatable(results()))
   })
+  
 }
 
 shinyApp(ui, server)

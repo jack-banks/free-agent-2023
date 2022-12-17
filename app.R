@@ -7,9 +7,9 @@ library(tidyverse)
 
 load("Environment.Rdata")
 
-final_cap <- read_csv("sim_cap_spaces.csv")
+final_cap <- read_csv("data/sim_cap_spaces.csv")
 
-players_all <- read_csv("players-all.csv")
+players_all <- read_csv("data/players-all.csv")
 players <- players_all %>% filter(is.na(Team)) %>% arrange(desc(value)) %>% head(100)
 
 
@@ -61,8 +61,7 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   
-  #table
-  output$table_out <- renderDT({
+  returns <- reactive({
     if(input$ts == "Spending Based On Team Contention Status") { #real contention status
       
       if(input$mkt == "Regular Markets") { #default
@@ -90,6 +89,7 @@ server <- function(input, output) {
         
         ret <- players %>% select(Name, Team, POS)
         ret <- cbind(ret, ContractValue = round(contracts))
+        
         return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #real and big mkt
@@ -331,13 +331,20 @@ server <- function(input, output) {
       return(data.table(0))
     }
   })
-  
-  output$table_out2 <- renderDT({
-    
-    
-    return(data.table(results))
+  #table
+  output$table_out <- renderDT({
+    datatable(returns()) 
   })
   
+  results <- reactive({
+    res <- returns() %>% group_by(Team) %>% summarize(PlayersAdded = sum(n()), Spent = sum(ContractValue))
+    return(res)
+    
+  })
+  output$table_out2 <- renderDT({
+    
+    return(datatable(results()))
+  })
   
 }
 
