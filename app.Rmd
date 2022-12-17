@@ -131,7 +131,7 @@ server <- function(input, output) {
           contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS)
+        ret <- players %>% select(Name, Team, POS, WAR)
         `Contract Value` = contract_char(contracts)
         ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
@@ -159,7 +159,7 @@ server <- function(input, output) {
           contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS)
+        ret <- players %>% select(Name, Team, POS, WAR)
         `Contract Value` = contract_char(contracts)
         ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
@@ -193,7 +193,7 @@ server <- function(input, output) {
           contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS)
+        ret <- players %>% select(Name, Team, POS, WAR)
         `Contract Value` = contract_char(contracts)
         ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
@@ -222,7 +222,7 @@ server <- function(input, output) {
           contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS)
+        ret <- players %>% select(Name, Team, POS, WAR)
         `Contract Value` = contract_char(contracts)
         ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
@@ -251,7 +251,7 @@ server <- function(input, output) {
           contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS)
+        ret <- players %>% select(Name, Team, POS, WAR)
         `Contract Value` = contract_char(contracts)
         ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
@@ -285,7 +285,7 @@ server <- function(input, output) {
           contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS)
+        ret <- players %>% select(Name, Team, POS, WAR)
         `Contract Value` = contract_char(contracts)
         ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
@@ -314,7 +314,7 @@ server <- function(input, output) {
           contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS)
+        ret <- players %>% select(Name, Team, POS, WAR)
         `Contract Value` = contract_char(contracts)
         ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
@@ -343,7 +343,7 @@ server <- function(input, output) {
           contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS)
+        ret <- players %>% select(Name, Team, POS, WAR)
         `Contract Value` = contract_char(contracts)
         ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
