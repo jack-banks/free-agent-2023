@@ -101,8 +101,9 @@ server <- function(input, output) {
           contracts <- c(contracts, max(bids))
         }
         
-        ret <- players %>% select(Name, Team, POS)
-        ret <- cbind(ret, ContractValue = round(contracts))
+        ret <- players %>% select(Name, Team, POS, WAR)
+        `Contract Value` = contract_char(contracts)
+        ret <- cbind(ret, `Contract Value`)
         
         return(data.table(ret))
         
@@ -131,7 +132,8 @@ server <- function(input, output) {
         }
         
         ret <- players %>% select(Name, Team, POS)
-        ret <- cbind(ret, ContractValue = round(contracts))
+        `Contract Value` = contract_char(contracts)
+        ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
       } else if(input$mkt == "Equal Markets") { #real and equal mkt
         
@@ -158,7 +160,8 @@ server <- function(input, output) {
         }
         
         ret <- players %>% select(Name, Team, POS)
-        ret <- cbind(ret, ContractValue = round(contracts))
+        `Contract Value` = contract_char(contracts)
+        ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
         
       }
@@ -191,7 +194,8 @@ server <- function(input, output) {
         }
         
         ret <- players %>% select(Name, Team, POS)
-        ret <- cbind(ret, ContractValue = round(contracts))
+        `Contract Value` = contract_char(contracts)
+        ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #both contending strat and big mkt
@@ -219,7 +223,8 @@ server <- function(input, output) {
         }
         
         ret <- players %>% select(Name, Team, POS)
-        ret <- cbind(ret, ContractValue = round(contracts))
+        `Contract Value` = contract_char(contracts)
+        ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
         
       } else if(input$mkt == "Equal Markets") { #contending and equal mkt
@@ -247,7 +252,8 @@ server <- function(input, output) {
         }
         
         ret <- players %>% select(Name, Team, POS)
-        ret <- cbind(ret, ContractValue = round(contracts))
+        `Contract Value` = contract_char(contracts)
+        ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
         
       }
@@ -280,7 +286,8 @@ server <- function(input, output) {
         }
         
         ret <- players %>% select(Name, Team, POS)
-        ret <- cbind(ret, ContractValue = round(contracts))
+        `Contract Value` = contract_char(contracts)
+        ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
         
       } else if(input$mkt == "Favor Big Markets") { #equal and big mkt
@@ -308,7 +315,8 @@ server <- function(input, output) {
         }
         
         ret <- players %>% select(Name, Team, POS)
-        ret <- cbind(ret, ContractValue = round(contracts))
+        `Contract Value` = contract_char(contracts)
+        ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
         
       } else if(input$mkt == "Equal Markets") { #both equal strat and mkt
@@ -336,7 +344,8 @@ server <- function(input, output) {
         }
         
         ret <- players %>% select(Name, Team, POS)
-        ret <- cbind(ret, ContractValue = round(contracts))
+        `Contract Value` = contract_char(contracts)
+        ret <- cbind(ret, `Contract Value`)
         return(data.table(ret))
         
       }
@@ -351,7 +360,7 @@ server <- function(input, output) {
   })
   
  results <- reactive({
-   res <- returns() %>% group_by(Team) %>% summarize(PlayersAdded = sum(n()), Spent = sum(ContractValue))
+   res <- returns() %>% group_by(Team) %>% summarize(`Players Added` = sum(n()), `WAR Added` = sum(WAR), Spent = sum(contract_num(`Contract Value`)))
    return(res)
    
  })
